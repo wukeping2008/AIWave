@@ -1,155 +1,190 @@
 # LiveCodeMusic-USB1601
 
-A browser-based live-coding music demo built with Vite + Tone.js.
+> 浏览器端 Live Coding 音乐演示（Vite + Tone.js），并可选接入 USB-1601 实时信号（WebSocket 桥接）。  
+> Browser-based live-coding music demo (Vite + Tone.js) with optional real-time USB-1601 signal input via a local WebSocket bridge.
 
-This fork adds an **optional real-signal input path** via a local USB-1601 WebSocket bridge.
+---
 
-## Run
+## 中文说明（简体）
+
+### 1) 项目简介
+
+本项目是一个可在浏览器中实时编辑并播放的电子音乐 Demo，核心能力：
+
+- 实时编辑 ACID / BASS / DRUMS（16-step）模式；
+- Tone.js 音频引擎驱动，支持预设、导入导出 JSON、全屏展示；
+- 底部实时可视化（频谱 / 波形 / 音符事件）；
+- 可选接入 **JYTEK USB-1601** 采集卡信号，通过本地 C# WebSocket Bridge 发送到前端；
+- 前端自动重连桥接服务，桥接未启动时也可作为纯音乐 Demo 正常运行。
+
+### 2) 目录结构
+
+```text
+.
+├─ index.html                 # 页面与交互控件
+├─ main.js                    # 音频引擎、参数映射、USB-1601 WS接入、可视化逻辑
+├─ style.css                  # 样式
+├─ package.json               # 前端依赖（Vite + Tone）
+├─ usb1601-bridge/
+│  ├─ README.md               # 桥接服务说明
+│  └─ Usb1601Bridge/
+│     ├─ Program.cs           # C# WebSocket桥接服务
+│     └─ Usb1601Bridge.csproj
+└─ JYUSB-1601.Examples/       # 厂商示例与 DLL 参考
+```
+
+### 3) 前端运行
 
 ```bash
-cd "/d/Documents/AI Wave/LiveCodeMusic-USB1601"
 npm install
 npm run dev
 ```
 
-Open the URL shown (usually `http://localhost:5173/`).
+启动后打开终端给出的地址（通常是 `http://localhost:5173/`）。
 
-## USB-1601 (real signal) bridge
+### 4) USB-1601 实时信号桥接（可选）
 
-Browsers can’t talk to USB DAQ devices directly. This project expects a **local bridge** that reads USB-1601 samples and streams them to the page via WebSocket.
-
-- Bridge URL (default): `ws://localhost:8787/ws`
-- Frontend behavior: auto-connect + auto-reconnect; if bridge is missing, the demo still works (pure Tone.js).
-
-### Start the bridge
-
-In a second terminal:
+浏览器不能直接读 USB 采集卡，因此需要本地桥接程序：
 
 ```bash
-cd "/d/Documents/AI Wave/LiveCodeMusic-USB1601/usb1601-bridge/Usb1601Bridge"
+cd "usb1601-bridge/Usb1601Bridge"
 dotnet build -c Release
 dotnet run -c Release -- --device USBDev0 --rate 1000 --channels 0 --low -10 --high 10 --blockMs 20
 ```
 
-If your device name differs (e.g. `USBDev1`), change `--device`.
+- 默认前端连接地址：`ws://localhost:8787/ws`
+- 若设备名不是 `USBDev0`（例如 `USBDev1`），请修改 `--device`
+- 高采样率建议使用 features 模式：
 
-## Controls
+```bash
+dotnet run -c Release -- --device USBDev0 --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
+```
 
-- `PLAY / STOP`: starts/stops Tone.Transport (audio + visuals).
-- `BPM`: tempo.
-- `Preset`: loads a curated state (and updates all editable fields/sliders).
-- `Vol / Rev`: master volume + master reverb.
-- `EXPORT / IMPORT`: save/load a JSON snapshot.
-- `FULLSCREEN`: demo mode.
-- `SOURCE & GUIDE`: in-app guide (draggable).
+- 无硬件教学演示可用 Mock：
 
-## Live Editing (the “code” area)
+```bash
+dotnet run -c Release -- --mock --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
+```
 
-### ACID / BASS
+### 5) 主要功能与操作
 
-- `n("...")`: space-separated degrees.
-  - `0` = root, `2` = 3rd, `4` = 5th.
-  - Negative values go down.
-  - Example: `0 2 4 7 9 7 4 2`
-- `scale("...")`: `a:minor`, `c:major`, `d:dorian`, `chromatic`, etc.
-- `trans(...)`: semitone transpose (Acid usually `-12`, Bass `-24`).
-- `s("...")`: oscillator type.
-  - Acid: `sawtooth`, `square`, `sine`, `triangle`
-  - Bass: `sawtooth`, `square`, `sine`, `triangle`, `fmsine`
+- `PLAY / STOP`：播放与停止（Tone.Transport）
+- `BPM`：速度控制
+- `Preset`：快速切换演示状态（Techno/House/Ambient）
+- `Vol / Rev`：总线音量与混响
+- `EXPORT / IMPORT`：导出/导入当前 JSON 快照
+- `FULLSCREEN`：全屏演示模式
+- `SOURCE & GUIDE`：内置可拖拽使用说明
 
-### DRUMS (16-step patterns)
+快捷键：
 
-Each bar is 16 characters:
+- `Space`：播放 / 停止（不在输入焦点时）
+- `H` 或 `?`：开关帮助面板
+- `Esc`：退出全屏
 
-- `x` = hit
-- `-` = rest
+### 6) 开发依赖
 
-Examples:
+- Node.js + npm（前端）
+- .NET SDK（桥接服务）
+- USB-1601 驱动与 `JYUSB1601.dll`（仅硬件模式需要）
 
-- Four-on-the-floor kick: `x---x---x---x---`
-- Offbeat hats (8ths): `x-x-x-x-x-x-x-x-`
-- Snare on beats 2 & 4: `----x-------x---`
+### 7) 已确认的当前项目状态
 
-You can also live-edit `hat gain` and `snare gain` as numbers.
-
-## Shortcuts
-
-- `Space`: play/stop (when you’re not typing in an input/editable field)
-- `H` or `?`: toggle guide
-- `Esc`: exit fullscreen
-
-## 2-minute demo script
-
-1. Pick a `Preset` and press `PLAY`.
-2. Move `BPM` (slow → fast) and point out Transport-driven scheduling.
-3. Edit `ACID n("...")` and show how the NOTES overlay changes.
-4. Edit `scale("...")` and `trans(...)` to shift the harmonic center.
-5. Edit DRUM patterns (kick/hat/snare) to show groove control.
-6. Toggle `FULLSCREEN`.
-7. `EXPORT` to capture the current “performance state”.
+- 前端为 **Vite + Tone.js** 单页应用；
+- USB-1601 接入方式为本地 C# WebSocket 桥接（`usb1601-bridge`）；
+- 项目中存在 `electron/` 目录但当前无实际 Electron 文件；
+- 前端具备断开桥接时的降级能力（保持纯 Tone.js 可用）。
 
 ---
 
-## 5分钟讲师操作清单（面向：有编程 + 信号处理基础）
+## English README
 
-目标：用“输入参数 → 可观测输出(声/谱/波形/音符轨迹) → 可导出状态(JSON) → 可用于数据采集/AI任务”的闭环讲清楚。
+### 1) Overview
 
-### 课前 60 秒（开讲前自检）
+This project is a browser-based live-coding music demo with editable ACID/BASS/DRUM patterns and real-time visualization.
 
-- [ ] 浏览器用 Chrome/Edge；连接音箱/耳机；系统音量正常。
-- [ ] 启动：`npm install`（首次）→ `npm run dev` → 打开 `http://localhost:5173/`。
-- [ ] 先点一次页面任意处，再点 `PLAY ▶️`（避免浏览器自动播放策略导致无声）。
-- [ ] `Preset` 先切到 `Techno`（稳定、响度足够），确认底部面板有频谱/波形在动。
-- [ ] 备份：准备一次 `EXPORT`（下载 JSON）作为“现场恢复点”。
+Key capabilities:
 
-### 讲授流程 5:00（按时间点照做）
+- Live edit melodic and drum patterns;
+- Tone.js-powered audio engine with presets and JSON import/export;
+- Realtime spectrum / waveform / note-event visualizer;
+- Optional **JYTEK USB-1601** real-signal input via a local C# WebSocket bridge;
+- Frontend auto-reconnects to bridge and still works in standalone mode if bridge is offline.
 
-**0:00–0:30 开场 + 解锁音频**
-- [ ] 点击 `PLAY ▶️`（或按 `Space`）开始。
-- [ ] 口播要点：这是 Tone.js 调度的“可重复实验系统”，不是随机生成。
+### 2) Project Structure
 
-**0:30–1:20 观测：频谱/波形/音符轨迹 = 信号视角**
-- [ ] 指向底部 `SPECTRUM • WAVE • NOTES` 面板。
-- [ ] 快速改 `BPM`：`110 → 150`（或反过来），让大家看到“同一算法，不同时间尺度”的输出变化。
-- [ ] 口播要点（信号处理语境）：波形≈时域，频谱≈频域，NOTES≈事件层（离散符号）。
+```text
+.
+├─ index.html                 # UI and control panel
+├─ main.js                    # Audio engine, params, WS bridge client, visualization
+├─ style.css                  # Styling
+├─ package.json               # Frontend deps (Vite + Tone)
+├─ usb1601-bridge/
+│  ├─ README.md               # Bridge details
+│  └─ Usb1601Bridge/
+│     ├─ Program.cs           # C# local WebSocket server
+│     └─ Usb1601Bridge.csproj
+└─ JYUSB-1601.Examples/       # Vendor examples / DLL reference
+```
 
-**1:20–2:10 输入：ACID 的离散序列（符号→声音）**
-- [ ] 在 ACID 的 `n("...")` 里把一段替换成：`0 2 4 7 9 7 4 2`。
-- [ ] 观察：音高轨迹/NOTES 点列随之变化。
-- [ ] 口播要点：这相当于把“离散 token 序列”映射到合成器参数与音高事件。
+### 3) Run Frontend
 
-**2:10–2:50 结构：scale / trans（同一序列，不同坐标系）**
-- [ ] 把 `scale("a:minor")` 改成 `scale("c:major")`。
-- [ ] 把 `trans(-12)` 改成 `trans(0)`（或 `-12 ↔ -24` 对比）。
-- [ ] 口播要点：这是“同一个 token 序列”在不同音阶/平移下的解释（特征空间变换的直觉类比）。
+```bash
+npm install
+npm run dev
+```
 
-**2:50–3:40 鼓：16-step pattern（离散节奏字符串）**
-- [ ] 在 DRUMS：
-  - Kick 保持 `x---x---x---x---`
-  - Hat 改成更稀疏：`x---x---x---x---`
-  - Snare 保持 `----x-------x---`
-- [ ] 口播要点：这就是最小可用的数据结构——固定长度字符串（易存、易比较、易训练）。
+Open the URL printed by Vite (usually `http://localhost:5173/`).
 
-**3:40–4:20 连续参数：滤波/延迟/失真 = 连续控制量**
-- [ ] 缓慢推 `acid lpf`（例如 `1200 → 6000`），再推 `acid delay`（例如 `0.2 → 0.5`）。
-- [ ] 口播要点：离散(序列/节奏) + 连续(滤波/混响/增益) → 混合参数空间，适合做回归/强化学习示例。
+### 4) USB-1601 Bridge (Optional)
 
-**4:20–4:45 数据采集动作：导出一次“状态快照”**
-- [ ] 点击 `EXPORT` 下载 JSON。
-- [ ] 口播要点：这份 JSON 是“可复现实验配置”，可作为每条样本的元数据（label/参数/上下文）。
+Run in another terminal:
 
-**4:45–5:00 演示模式收尾**
-- [ ] 点击 `FULLSCREEN ⛶`（或不进全屏，视现场投影而定）。
-- [ ] 按 `Space` 停止，结束。
+```bash
+cd "usb1601-bridge/Usb1601Bridge"
+dotnet build -c Release
+dotnet run -c Release -- --device USBDev0 --rate 1000 --channels 0 --low -10 --high 10 --blockMs 20
+```
 
-### 事故预案（现场 10 秒解决）
+- Default frontend bridge URL: `ws://localhost:8787/ws`
+- If your device is not `USBDev0`, change `--device`
+- For high sample rates, prefer features mode:
 
-- **没声音**：先停再播（`Space` 两次）→ 确保点过页面 → 检查系统音量/输出设备。
-- **音爆/太响**：先把 `Vol` 拉到 `0.6` 左右，再继续。
-- **卡顿**：把 `Rev` 拉低（≤ `0.1`），避免浏览器回响计算开销。
+```bash
+dotnet run -c Release -- --device USBDev0 --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
+```
 
-### 建议采集字段（讲完可布置作业/实验）
+- For no-hardware demos, use mock mode:
 
-- [ ] `EXPORT` 的 JSON（核心）
-- [ ] 演示时的时间戳（开始/结束）+ `BPM` + `Preset`
-- [ ] 可选：屏幕录制（含底部谱/波形）作为“弱标签”对齐
+```bash
+dotnet run -c Release -- --mock --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
+```
+
+### 5) Controls
+
+- `PLAY / STOP` — start or stop transport/audio
+- `BPM` — tempo
+- `Preset` — load curated states
+- `Vol / Rev` — master volume and reverb
+- `EXPORT / IMPORT` — save/load JSON snapshot
+- `FULLSCREEN` — presentation mode
+- `SOURCE & GUIDE` — built-in draggable guide
+
+Shortcuts:
+
+- `Space` — play/stop (when not typing)
+- `H` / `?` — toggle guide
+- `Esc` — exit fullscreen
+
+### 6) Requirements
+
+- Node.js + npm (frontend)
+- .NET SDK (bridge)
+- USB-1601 driver + `JYUSB1601.dll` (hardware mode only)
+
+### 7) Current Snapshot of This Repository
+
+- Frontend is a Vite + Tone.js SPA.
+- USB-1601 integration is implemented through `usb1601-bridge`.
+- `electron/` directory exists but currently contains no active Electron source files.
+- Frontend gracefully degrades when bridge is unavailable.
