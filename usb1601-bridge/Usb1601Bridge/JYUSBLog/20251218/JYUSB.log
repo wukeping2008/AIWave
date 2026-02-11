@@ -1,0 +1,2 @@
+[2025-12-18 22:34:16][src\JYUSBCore.cpp][201][ERR]JYUSB_Init: Error - DB_LoadDeviceInfoList() no avaliable devices 
+Error: 0xffffe887
