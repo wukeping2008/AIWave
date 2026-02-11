@@ -15,6 +15,9 @@ yarn-error.log*
 /web-dist/
 /dist-app/
 
+# Vendor examples and packages
+/JYUSB-1601.Examples/
+
 # Visual Studio / .NET
 .vs/
 **/bin/
