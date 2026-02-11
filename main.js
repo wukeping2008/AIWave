@@ -13,6 +13,10 @@ const masterVolumeEl = document.getElementById('master-volume');
 const masterVolumeValEl = document.getElementById('val-master-volume');
 const masterReverbEl = document.getElementById('master-reverb');
 const masterReverbValEl = document.getElementById('val-master-reverb');
+// Simulation Slider (Offline Mode)
+const simSliderEl = document.getElementById('sim-slider');
+const simSliderValEl = document.getElementById('val-sim-slider');
+
 const helpBtn = document.getElementById('help-btn');
 const helpModal = document.getElementById('help-modal');
 const closeModal = document.querySelector('.close-modal');
@@ -248,23 +252,30 @@ window.setInterval(() => {
   if (!audioInitialized) return;
   if (!acidFilter || !acidSynth || !bassGain || !masterReverb || !acidGainNode || !acidDelay || !kickDist) return;
 
-  // Important: if the backend is not running (or no fresh blocks), do NOT override manual UI edits.
+  // Important: if the backend is not running (or no fresh blocks) AND no simulation, do NOT override manual UI edits.
   // This keeps the standalone frontend live-edit experience working.
   const now = performance.now();
-  if (!usb1601SignalActive || !usb1601LastBlockAt || (now - usb1601LastBlockAt > 2000)) {
+
+  const simValue = parseFloat(simSliderEl?.value || 0);
+  const isSimActive = simValue > 0.01;
+
+  if ((!usb1601SignalActive || !usb1601LastBlockAt || (now - usb1601LastBlockAt > 2000)) && !isSimActive) {
     usb1601SignalActive = false;
     return;
   }
 
   // If the bridge is disconnected for a while, slowly fall back toward neutral.
-  if (usb1601LastBlockAt && now - usb1601LastBlockAt > 1200) {
+  if (usb1601SignalActive && usb1601LastBlockAt && now - usb1601LastBlockAt > 1200) {
     usb1601LevelEma *= 0.97;
   }
 
-  // Boost mid-levels so the effect is clearly audible.
-  const level = clamp01(Math.pow(clamp01(usb1601LevelEma), 0.6));
+  // Combine real signal and simulation (Sim overrides if higher, allowing testing)
+  const rawLevel = usb1601SignalActive ? Math.max(usb1601LevelEma, simValue) : simValue;
 
-  // Mapping (simple + stable):
+  // Boost mid-levels so the effect is clearly audible.
+  const level = clamp01(Math.pow(clamp01(rawLevel), 0.6));
+
+  // Mapping (simple + stable)::
   // - ACID filter frequency opens with signal level
   // - ACID filter envelope gets wider
   // - Reverb wet gets slightly higher
@@ -724,6 +735,10 @@ masterReverbEl?.addEventListener('input', () => {
   if (masterReverbValEl) masterReverbValEl.textContent = masterReverbEl.value;
   if (audioInitialized) applyMasterReverb();
   scheduleSaveState();
+});
+
+simSliderEl?.addEventListener('input', () => {
+  if (simSliderValEl) simSliderValEl.textContent = parseFloat(simSliderEl.value).toFixed(2);
 });
 
 
@@ -1286,6 +1301,115 @@ Object.values(sliders).forEach(s => {
 masterVolumeEl?.addEventListener('input', markCustomPreset);
 masterReverbEl?.addEventListener('input', markCustomPreset);
 bpmInput?.addEventListener('change', markCustomPreset);
+
+
+// --- INTELLISENSE / AUTOCOMPLETE ---
+const suggestionBox = document.createElement('div');
+suggestionBox.className = 'suggestion-box';
+document.body.appendChild(suggestionBox);
+
+let activeSuggestionTarget = null;
+
+// Knowledge Base
+const SUGGESTIONS = {
+  // Scales
+  'acid-scale': Object.keys(SCALES).map(s => ({ val: s, hint: 'Scale' })),
+  'bass-scale': Object.keys(SCALES).map(s => ({ val: s, hint: 'Scale' })),
+  
+  // Transpose
+  'acid-trans': [
+    { val: '-24', hint: '-2 Oct' }, { val: '-12', hint: '-1 Oct' }, 
+    { val: '0', hint: 'Unison' }, { val: '12', hint: '+1 Oct' }
+  ],
+  'bass-trans': [
+    { val: '-36', hint: '-3 Oct' }, { val: '-24', hint: '-2 Oct' }, 
+    { val: '-12', hint: '-1 Oct' }
+  ],
+
+  // Synths
+  'acid-synth-type': [
+    { val: 'sawtooth', hint: 'Sharp' }, { val: 'square', hint: 'Retro' }, 
+    { val: 'triangle', hint: 'Soft' }, { val: 'sine', hint: 'Pure' }
+  ],
+  'bass-synth-type': [
+    { val: 'sawtooth', hint: 'Sharp' }, { val: 'square', hint: 'Retro' }, 
+    { val: 'fmsine', hint: 'Deep' }, { val: 'triangle', hint: 'Soft' }
+  ],
+
+  // Snippets/Patterns
+  'kick-pattern': [
+    { val: 'x---x---x---x---', hint: '4-on-floor' },
+    { val: 'x-x-------x-----', hint: 'Techno Break' },
+    { val: 'x...x...x...x...', hint: 'Minimal' }
+  ],
+  'hat-pattern': [
+    { val: 'x-x-x-x-x-x-x-x-', hint: '16ths' },
+    { val: '--x---x---x---x-', hint: 'Offbeat' },
+    { val: 'x...x...x...x...', hint: 'Eights' }
+  ],
+  'acid-pattern': [
+    { val: '0 2 4 7 9 7 4 2', hint: 'Arpeggio UpDown' },
+    { val: '0 0 12 0 0 0 12 0', hint: 'Octave Jumps' },
+    { val: '0 3 7 10 12 10 7 3', hint: 'Minor 7th' }
+  ]
+};
+
+function showSuggestions(target) {
+  const id = target.id;
+  const list = SUGGESTIONS[id];
+  if (!list) return;
+
+  activeSuggestionTarget = target;
+  suggestionBox.innerHTML = '';
+  
+  list.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    div.innerHTML = `<span>${item.val}</span><span class="hint">${item.hint}</span>`;
+    div.addEventListener('mousedown', (e) => { // mousedown happens before blur
+      e.preventDefault(); // prevent blur
+      target.textContent = item.val;
+      hideSuggestions();
+      updateParams(); // Trigger audio update immediately
+      markCustomPreset();
+    });
+    suggestionBox.appendChild(div);
+  });
+
+  // Position box
+  const rect = target.getBoundingClientRect();
+  suggestionBox.style.left = `${rect.left}px`;
+  suggestionBox.style.top = `${rect.bottom + window.scrollY + 4}px`; // slightly below
+  suggestionBox.classList.add('visible');
+}
+
+function hideSuggestions() {
+  suggestionBox.classList.remove('visible');
+  activeSuggestionTarget = null;
+}
+
+// Attach to all editables
+document.querySelectorAll('.editable').forEach(el => {
+  // Show on focus/click
+  el.addEventListener('focus', () => showSuggestions(el));
+  el.addEventListener('click', () => showSuggestions(el));
+  
+  // Hide on verify blur (delayed to allow click processing)
+  el.addEventListener('blur', () => {
+    setTimeout(() => hideSuggestions(), 150);
+  });
+
+  // Allow navigation? (Simple version: just filter by typing not implemented for simplicity, 
+  // keeping it as a "Preset Picker" behavior for now)
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault();
+      el.blur();
+      hideSuggestions();
+    }
+  });
+});
+
 
 // Cleanup
 window.addEventListener('beforeunload', () => {

@@ -1,0 +1,51 @@
+
+/* --- Suggestions Popup (IDE Style) --- */
+.suggestion-box {
+  position: absolute;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 120px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+  display: none; /* Hidden by default */
+}
+
+.suggestion-box.visible {
+  display: block;
+}
+
+.suggestion-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  justify-content: space-between;
+}
+
+.suggestion-item:hover, .suggestion-item.selected {
+  background: #007acc; /* VS Code blue */
+  color: #fff;
+}
+
+.suggestion-item .hint {
+  font-size: 0.8em;
+  opacity: 0.6;
+  margin-left: 10px;
+}
+
+/* Scrollbar for suggestion box */
+.suggestion-box::-webkit-scrollbar {
+  width: 6px;
+}
+.suggestion-box::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+.suggestion-box::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

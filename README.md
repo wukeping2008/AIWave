@@ -66,21 +66,34 @@ dotnet run -c Release -- --device USBDev0 --rate 100000 --channels 0 --low -10 -
 dotnet run -c Release -- --mock --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
 ```
 
-### 5) 主要功能与操作
+### 5) 主要功能与操作指南 (Operation Guide)
 
-- `PLAY / STOP`：播放与停止（Tone.Transport）
-- `BPM`：速度控制
-- `Preset`：快速切换演示状态（Techno/House/Ambient）
-- `Vol / Rev`：总线音量与混响
-- `EXPORT / IMPORT`：导出/导入当前 JSON 快照
-- `FULLSCREEN`：全屏演示模式
-- `SOURCE & GUIDE`：内置可拖拽使用说明
+#### 基本控制 (Basic Controls)
+- **PLAY / STOP**：启动或停止音频引擎 (Tone.js Transport)。
+- **BPM**：全局速度控制。
+- **Preset**：快速切换音乐风格（Techno/House/Ambient），这会重置所有参数。
+- **Vol / Rev**：控制总线音量与混响效果量。
+- **Sim (New!)**：**离线模拟滑杆**。当未连接 USB-1601 硬件时，拖动此滑杆可手动模拟 0-1 的信号强度。这允许你在无硬件环境下测试声音对电压信号的动态响应（如滤波器开合、包络变化、增益提升等）。
 
-快捷键：
+#### 音乐编程 (Live Coding)
+- **ACID / BASS**：旋律与低音编辑。
+  - **Pattern**：输入音程度数序列（如 `0 2 4 7`）。支持 `-`（延音）和 `.`（休止符）。
+  - **Scale**：音阶调式（支持 `a:minor`, `c:major`, `d:dorian`, `f:lydian` 等）。
+  - **Trans**：移调（半音单位，如 `-12` 表示低八度）。
+  - **Params**：可手动调整 Cutoff, Resonance, Decay 等参数（但在有信号输入时会被信号覆盖）。
+- **DRUMS**：节奏鼓组编辑。
+  - 使用 `x` 表示触发，`-` 或 `.` 表示空拍。
+  - 示例：`x---x---x---x---` (典型的 4/4 拍)。
 
-- `Space`：播放 / 停止（不在输入焦点时）
-- `H` 或 `?`：开关帮助面板
-- `Esc`：退出全屏
+#### 导入导出
+- **EXPORT / IMPORT**：将当前所有音序、参数和设置导出为 JSON 文件，或从 JSON 恢复现场。
+- **FULLSCREEN**：进入全屏沉浸模式。
+- **SOURCE & GUIDE**：打开内置帮助面板。
+
+#### 快捷键
+- `Space`：播放 / 停止（当输入焦点不在文本框时）。
+- `H` 或 `?`：开关帮助面板。
+- `Esc`：退出全屏。
 
 ### 6) 开发依赖
 
@@ -160,21 +173,33 @@ dotnet run -c Release -- --device USBDev0 --rate 100000 --channels 0 --low -10 -
 dotnet run -c Release -- --mock --rate 100000 --channels 0 --low -10 --high 10 --blockMs 10 --mode features
 ```
 
-### 5) Controls
+### 5) Controls & Operation Guide
 
-- `PLAY / STOP` — start or stop transport/audio
-- `BPM` — tempo
-- `Preset` — load curated states
-- `Vol / Rev` — master volume and reverb
-- `EXPORT / IMPORT` — save/load JSON snapshot
-- `FULLSCREEN` — presentation mode
-- `SOURCE & GUIDE` — built-in draggable guide
+#### Basic Controls
+- **PLAY / STOP**: Start/Stop the audio engine.
+- **BPM**: Global tempo control.
+- **Preset**: Load curated styles (Techno, House, Ambient). Resets all parameters.
+- **Vol / Rev**: Master volume and reverb amount.
+- **Sim (New!)**: **Offline Simulation Slider**. When the USB-1601 hardware is not connected, use this slider (0-1) to simulate a voltage signal. This lets you test the dynamic response (filter opening, envelope tightening, gain boost) without the physical device.
 
-Shortcuts:
+#### Live Coding (Patterns)
+- **ACID / BASS**: Melodic sequencers.
+  - **Pattern**: Enter scale degrees (e.g., `0 2 4 7`). Use `-` for hold and `.` for rest.
+  - **Scale**: Musical mode (e.g., `a:minor`, `c:major`, `d:dorian`).
+  - **Trans**: Transpose in semitones (e.g., `-12` is one octave down).
+- **DRUMS**: Rhythm sequencer.
+  - Use `x` for trigger, `-` or `.` for rest.
+  - Example: `x---x---x---x---` (Four-on-the-floor).
 
-- `Space` — play/stop (when not typing)
-- `H` / `?` — toggle guide
-- `Esc` — exit fullscreen
+#### Integration
+- **EXPORT / IMPORT**: Save/Load current state to JSON.
+- **FULLSCREEN**: Presentation mode.
+- **SOURCE & GUIDE**: Built-in draggable help panel.
+
+#### Shortcuts
+- `Space`: Play/Stop (when not typing).
+- `H` / `?`: Toggle guide.
+- `Esc`: Exit fullscreen.
 
 ### 6) Requirements
 

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Code Music Gen</title>
   <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./suggestions.css" />
 </head>
 
 <body>
@@ -38,6 +39,12 @@
         <label for="master-reverb">Rev:</label>
         <input id="master-reverb" type="range" min="0" max="1" step="0.01" value="0.15" aria-label="Master reverb amount">
         <span class="val" id="val-master-reverb">0.15</span>
+      </div>
+
+      <div class="control-group" title="Simulate USB-1601 signal (Offline Mode)">
+        <label for="sim-slider" style="color:#aaa">Sim:</label>
+        <input id="sim-slider" type="range" min="0" max="1" step="0.01" value="0" aria-label="Simulate USB Signal">
+        <span class="val" id="val-sim-slider">0.0</span>
       </div>
 
       <button id="save-btn" class="control-btn secondary" aria-label="Export settings">EXPORT</button>
